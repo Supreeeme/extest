@@ -6,8 +6,10 @@ It's been primarily developed for allowing the desktop functionality on the Stea
 ## Usage
 
 Be sure you have [Rust](https://www.rust-lang.org/learn/get-started) installed.
+You will also need to install a 32 bit Rust toolchain.
 
 ```sh
+rustup target add i686-unknown-linux-gnu
 cargo build --release
 ```
 
