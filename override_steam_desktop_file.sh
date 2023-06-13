@@ -34,5 +34,5 @@ echo "Found Steam's desktop file at $STEAM_DESKTOP_FILE, copying to $NEW_DESKTOP
 set -e
 mkdir -p "$(dirname $NEW_DESKTOP_FILE)"
 cp $STEAM_DESKTOP_FILE $NEW_DESKTOP_FILE
-sed -i "s,Exec=/usr/bin/steam-runtime,Exec=env LD_PRELOAD=$EXTEST /usr/bin/steam-runtime," $NEW_DESKTOP_FILE
+sed -i "s,Exec=/usr/bin/steam,Exec=env LD_PRELOAD=$EXTEST /usr/bin/steam," $NEW_DESKTOP_FILE
 echo "Extest has been set up, enjoy!"
