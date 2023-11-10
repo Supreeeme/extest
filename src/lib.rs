@@ -66,7 +66,10 @@ pub extern "C" fn XTestFakeKeyEvent(
     let mut dev = DEVICE.lock().unwrap();
 
     // Seems that X11 keycodes are just 8 + linux keycode - https://wiki.archlinux.org/title/Keyboard_input#Identifying_keycodes
-    let key = Key::new((keycode - 8) as u16);
+    let key = match keycode {
+        156 => Key::KEY_TAB, // I have no idea where this comes from
+        keycode => Key::new((keycode - 8) as u16)
+    };
     dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, is_press as i32)])
         .unwrap();
     1
