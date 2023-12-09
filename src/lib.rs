@@ -70,6 +70,10 @@ pub extern "C" fn XTestFakeKeyEvent(
         156 => Key::KEY_TAB, // I have no idea where this comes from
         keycode => Key::new((keycode - 8) as u16)
     };
+
+    #[cfg(debug_assertions)]
+    println!("emitting keycode {key:?}");
+
     dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, is_press as i32)])
         .unwrap();
     1

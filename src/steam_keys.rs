@@ -87,6 +87,9 @@ pub const KEYS: &[Key] = &[
     Key::KEY_STOP,
     Key::KEY_NEXT,
     Key::KEY_PREVIOUS,
+    Key::KEY_PREVIOUSSONG,
+    Key::KEY_NEXTSONG,
+    Key::KEY_PLAYPAUSE,
     Key::KEY_INSERT,
     Key::KEY_HOME,
     Key::KEY_PAGEUP,
@@ -119,5 +122,8 @@ pub const KEYS: &[Key] = &[
     Key::KEY_KPENTER,
 
     Key::KEY_KP0,
-    Key::KEY_KPDOT
+    Key::KEY_KPDOT,
+    Key::KEY_KPLEFTPAREN,
+    Key::KEY_KPRIGHTPAREN,
+    Key::KEY_102ND, // Output by < (less than key)
 ];
