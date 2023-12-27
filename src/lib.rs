@@ -68,7 +68,7 @@ pub extern "C" fn XTestFakeKeyEvent(
     // Seems that X11 keycodes are just 8 + linux keycode - https://wiki.archlinux.org/title/Keyboard_input#Identifying_keycodes
     let key = match keycode {
         156 => Key::KEY_TAB, // I have no idea where this comes from
-        keycode => Key::new((keycode - 8) as u16)
+        keycode => Key::new((keycode - 8) as u16),
     };
 
     #[cfg(debug_assertions)]
@@ -77,6 +77,30 @@ pub extern "C" fn XTestFakeKeyEvent(
     dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, is_press as i32)])
         .unwrap();
     1
+}
+
+#[repr(u8)]
+enum MouseButtons {
+    LeftClick = 1,
+    MiddleClick = 2,
+    RightClick = 3,
+    ScrollUp = 4,
+    ScrollDown = 5,
+}
+
+impl TryFrom<u32> for MouseButtons {
+    type Error = u32;
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        use MouseButtons::*;
+        match value {
+            1 => Ok(LeftClick),
+            2 => Ok(MiddleClick),
+            3 => Ok(RightClick),
+            4 => Ok(ScrollUp),
+            5 => Ok(ScrollDown),
+            other => Err(other),
+        }
+    }
 }
 
 #[no_mangle]
@@ -88,26 +112,30 @@ pub extern "C" fn XTestFakeButtonEvent(
 ) -> c_int {
     let mut dev = DEVICE.lock().unwrap();
     // values determined via xev
-    let key = match button {
-        1 => Key::BTN_LEFT,
-        2 => Key::BTN_MIDDLE,
-        3 => Key::BTN_RIGHT,
-        scrolldir @ (4 | 5) => {
-            // 4 = scrollup, 5 = scrolldown
-            let value = match scrolldir {
-                4 => 1,
-                5 => -1,
-                _ => unreachable!(),
-            };
-            dev.emit(&[InputEvent::new_now(
-                EventType::RELATIVE,
-                RelativeAxisType::REL_WHEEL.0,
-                value,
-            )])
-            .unwrap();
+    let key = match button.try_into() {
+        Ok(MouseButtons::LeftClick) => Key::BTN_LEFT,
+        Ok(MouseButtons::MiddleClick) => Key::BTN_MIDDLE,
+        Ok(MouseButtons::RightClick) => Key::BTN_RIGHT,
+        Ok(MouseButtons::ScrollUp | MouseButtons::ScrollDown) => {
+            // These are sent with is_press true and is_press false like the other buttons,
+            // but we only care about is_press because an "unpressed" scroll event doesn't make
+            // sense. Why are these considered "buttons" anyway?
+            if is_press {
+                let value = match button.try_into() {
+                    Ok(MouseButtons::ScrollUp) => 1,
+                    Ok(MouseButtons::ScrollDown) => -1,
+                    _ => unreachable!(),
+                };
+                dev.emit(&[InputEvent::new_now(
+                    EventType::RELATIVE,
+                    RelativeAxisType::REL_WHEEL.0,
+                    value,
+                )])
+                .unwrap();
+            }
             return 1;
         }
-        other => {
+        Err(other) => {
             println!("WARNING: received unknown keycode {other}");
             return 1;
         }
