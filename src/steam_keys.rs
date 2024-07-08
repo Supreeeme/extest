@@ -75,6 +75,7 @@ pub const KEYS: &[Key] = &[
     Key::KEY_RIGHTSHIFT,
 
     Key::KEY_LEFTCTRL,
+    Key::KEY_RIGHTCTRL,
     Key::KEY_LEFTMETA,
     Key::KEY_LEFTALT,
     Key::KEY_SPACE,
