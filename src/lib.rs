@@ -38,7 +38,6 @@ static DEVICE: Lazy<Mutex<VirtualDevice>> = Lazy::new(|| {
                     RelativeAxisType::REL_Y,
                     RelativeAxisType::REL_WHEEL,
                 ]
-                .into_iter(),
             ))
             .unwrap()
             .with_absolute_axis(&UinputAbsSetup::new(
