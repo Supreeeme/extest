@@ -73,7 +73,7 @@ pub extern "C" fn XTestFakeKeyEvent(
     #[cfg(debug_assertions)]
     println!("emitting keycode {key:?}");
 
-    dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, is_press as i32)])
+    dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, i32::from(is_press))])
         .unwrap();
     1
 }
@@ -140,7 +140,7 @@ pub extern "C" fn XTestFakeButtonEvent(
         }
     };
 
-    dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, is_press as i32)])
+    dev.emit(&[InputEvent::new_now(EventType::KEY, key.0, i32::from(is_press))])
         .unwrap();
     1
 }
