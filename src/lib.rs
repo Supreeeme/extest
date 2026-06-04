@@ -19,8 +19,17 @@ pub struct Display {
     _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
+use crate::wayland::DisplaySize; // Import DisplaySize from wayland module
+
 static DEVICE: Lazy<Mutex<VirtualDevice>> = Lazy::new(|| {
-    let size = get_axes_range();
+    let size = match get_axes_range() {
+        Ok(size) => size,
+        Err(e) => {
+            eprintln!("Error getting axes range: {}", e);
+            // Handle the error by returning a default size
+            DisplaySize { width: 0, height: 0 }
+        }
+    };
     Mutex::new(
         VirtualDevice::builder()
             .unwrap()

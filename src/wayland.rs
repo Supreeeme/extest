@@ -7,6 +7,7 @@ use wayland_protocols::xdg::xdg_output::zv1::client::{
     zxdg_output_manager_v1::ZxdgOutputManagerV1, zxdg_output_v1,
 };
 
+use std::error::Error;
 
 #[derive(Copy, Clone, Default)]
 pub struct DisplaySize {
@@ -22,24 +23,24 @@ struct OutputData {
 }
 
 /// Returns the largest dimensions of the detected monitors
-#[must_use]
-pub fn get_axes_range() -> DisplaySize {
-    let conn = Connection::connect_to_env().unwrap();
+pub fn get_axes_range() -> Result<DisplaySize, Box<dyn Error>> {
+    let conn = Connection::connect_to_env()?;
     let display = conn.display();
     let mut queue = conn.new_event_queue();
     let handle = queue.handle();
     display.get_registry(&handle, ());
     let mut data = OutputData::default();
-    queue.roundtrip(&mut data).unwrap();
+    queue.roundtrip(&mut data)?;
 
     for output in data.wl_outputs.iter() {
-        data.output_man
-            .as_ref()
-            .unwrap()
-            .get_xdg_output(output, &handle, ());
+        if let Some(output_man) = &data.output_man {
+            output_man.get_xdg_output(output, &handle, ());
+            } else {
+                return Err("XDG Output Manager not found".into());
+            }
     }
-    queue.roundtrip(&mut data).unwrap();
-    data.max_size
+    queue.roundtrip(&mut data)?;
+    Ok(data.max_size)
 }
 
 impl Dispatch<zxdg_output_v1::ZxdgOutputV1, ()> for OutputData {
