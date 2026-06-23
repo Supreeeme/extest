@@ -34,3 +34,9 @@ The repository also comes with a script to automatically override Steam's deskto
 ```sh
 ./override_steam_desktop_file.sh
 ```
+
+Optionally for exposing the wayland socket to specifically extest, without overriding the internal wayland session for steam (ex: using gamescope), you can use the following command:
+
+```sh
+env EXTEST_DISPLAY=$WAYLAND_DISPLAY LD_PRELOAD=/path/to/libextest.so steam
+```
