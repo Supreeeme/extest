@@ -34,5 +34,14 @@ echo "Found Steam's desktop file at $STEAM_DESKTOP_FILE, copying to $NEW_DESKTOP
 set -e
 mkdir -p "$(dirname $NEW_DESKTOP_FILE)"
 cp $STEAM_DESKTOP_FILE $NEW_DESKTOP_FILE
-sed -i "s,Exec=/usr/bin/steam,Exec=env LD_PRELOAD=$EXTEST /usr/bin/steam," $NEW_DESKTOP_FILE
+
+sed -i \
+    "s,Exec=\(/usr/\(bin\|games\)/steam\),Exec=env LD_PRELOAD=$EXTEST \1," \
+    "$NEW_DESKTOP_FILE"
+
+if ! grep -q "LD_PRELOAD=$EXTEST" "$NEW_DESKTOP_FILE"; then
+    echo "Failed to modify Steam's Exec line, aborting"
+    exit 1
+fi
+
 echo "Extest has been set up, enjoy!"
