@@ -8,7 +8,6 @@ use evdev::{
     uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AttributeSet, EventType, InputEvent, KeyCode,
     RelativeAxisCode, UinputAbsSetup,
 };
-use once_cell::sync::Lazy;
 use std::ffi::{c_int, c_uint, c_ulong};
 use std::sync::Mutex;
 
@@ -19,7 +18,7 @@ pub struct Display {
     _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
-static DEVICE: Lazy<Mutex<VirtualDevice>> = Lazy::new(|| {
+static DEVICE: std::sync::LazyLock<Mutex<VirtualDevice>> = std::sync::LazyLock::new(|| {
     let size = get_axes_range();
     Mutex::new(
         VirtualDevice::builder()
@@ -79,10 +78,10 @@ pub extern "C" fn XTestFakeKeyEvent(
     dev.emit(&[InputEvent::new_now(
         EventType::KEY.0,
         key.0,
-        is_press as i32,
+        i32::from(is_press),
     )])
     .unwrap();
-    1
+    return 1;
 }
 
 #[repr(u8)]
@@ -99,7 +98,7 @@ enum MouseButtons {
 impl TryFrom<u32> for MouseButtons {
     type Error = u32;
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        use MouseButtons::*;
+        use MouseButtons::{LeftClick, MiddleClick, RightClick, ScrollUp, ScrollDown, Side, Extra};
         match value {
             1 => Ok(LeftClick),
             2 => Ok(MiddleClick),
@@ -158,10 +157,10 @@ pub extern "C" fn XTestFakeButtonEvent(
     dev.emit(&[InputEvent::new_now(
         EventType::KEY.0,
         key.0,
-        is_press as i32,
+        i32::from(is_press),
     )])
     .unwrap();
-    1
+    return 1;
 }
 
 #[no_mangle]
@@ -177,7 +176,7 @@ pub extern "C" fn XTestFakeRelativeMotionEvent(
         InputEvent::new_now(EventType::RELATIVE.0, RelativeAxisCode::REL_Y.0, y),
     ];
     dev.emit(&events).unwrap();
-    1
+    return 1;
 }
 
 #[no_mangle]
@@ -194,5 +193,5 @@ pub extern "C" fn XTestFakeMotionEvent(
         InputEvent::new_now(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, y),
     ];
     dev.emit(&events).unwrap();
-    1
+    return 1;
 }

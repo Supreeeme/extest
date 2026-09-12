@@ -32,7 +32,7 @@ pub fn get_axes_range() -> DisplaySize {
     let mut data = OutputData::default();
     queue.roundtrip(&mut data).unwrap();
 
-    for output in data.wl_outputs.iter() {
+    for output in &data.wl_outputs {
         data.output_man
             .as_ref()
             .unwrap()
@@ -47,9 +47,9 @@ impl Dispatch<zxdg_output_v1::ZxdgOutputV1, ()> for OutputData {
         state: &mut Self,
         _: &zxdg_output_v1::ZxdgOutputV1,
         event: zxdg_output_v1::Event,
-        _: &(),
+        (): &(),
         _: &Connection,
-        _: &QueueHandle<OutputData>,
+        _: &QueueHandle<Self>,
     ) {
         if let zxdg_output_v1::Event::LogicalSize { width, height } = event {
             println!("detected display with width {width} and height {height}");
@@ -66,9 +66,9 @@ impl Dispatch<wl_registry::WlRegistry, ()> for OutputData {
         state: &mut Self,
         registry: &wl_registry::WlRegistry,
         event: wl_registry::Event,
-        _: &(),
+        (): &(),
         _: &Connection,
-        handle: &QueueHandle<OutputData>,
+        handle: &QueueHandle<Self>,
     ) {
         if let wl_registry::Event::Global {
             name,
