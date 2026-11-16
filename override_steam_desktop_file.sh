@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DIR="$(dirname $(readlink -f "$0"))"
-EXTEST=$DIR/target/i686-unknown-linux-gnu/release/libextest.so
+EXTEST=$DIR/target/release/libextest.so
 
 if ! [ -f $EXTEST ]; then
 	echo "Extest not built, building..."
@@ -14,7 +14,7 @@ if ! [ -f $EXTEST ]; then
 fi
 
 STEAM_DESKTOP_FILE=""
-IFS=: read -a search_paths < <(echo "$XDG_DATA_DIRS")
+IFS=: read -a search_paths < <(echo "${XDG_DATA_DIRS:-/usr/local/share:/usr/share}")
 for path in "${search_paths[@]}"; do
 	if [ -f $path/applications/steam.desktop ]; then
 		STEAM_DESKTOP_FILE=$path/applications/steam.desktop
@@ -22,7 +22,7 @@ for path in "${search_paths[@]}"; do
 	fi
 done
 
-if ! [ -f $STEAM_DESKTOP_FILE ]; then
+if ! [ -f "$STEAM_DESKTOP_FILE" ]; then
 	echo "Could not find Steam's desktop file, is XDG_DATA_DIRS	set properly?"
 	exit 1
 fi
@@ -34,5 +34,5 @@ echo "Found Steam's desktop file at $STEAM_DESKTOP_FILE, copying to $NEW_DESKTOP
 set -e
 mkdir -p "$(dirname $NEW_DESKTOP_FILE)"
 cp $STEAM_DESKTOP_FILE $NEW_DESKTOP_FILE
-sed -i "s,Exec=/usr/bin/steam,Exec=env LD_PRELOAD=$EXTEST /usr/bin/steam," $NEW_DESKTOP_FILE
+sed -i -E "s,^Exec=((/usr/bin/|/usr/games/)?steam)( |\$),Exec=env LD_PRELOAD=$EXTEST \1\3," $NEW_DESKTOP_FILE
 echo "Extest has been set up, enjoy!"
