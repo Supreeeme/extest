@@ -1,8 +1,7 @@
 mod steam_keys;
 use steam_keys::KEYS;
 
-mod wayland;
-use wayland::get_axes_range;
+mod x11;
 
 use evdev::{
     uinput::VirtualDevice, AbsInfo, AbsoluteAxisCode, AttributeSet, EventType, InputEvent, KeyCode,
@@ -19,8 +18,19 @@ pub struct Display {
     _marker: core::marker::PhantomData<(*mut u8, core::marker::PhantomPinned)>,
 }
 
+// Absolute positions are sent as a fraction of the X screen in this range, and the
+// compositor maps the range onto its whole layout. A fixed range lets the screen
+// size change without recreating the device.
+const ABS_RANGE: i32 = 1 << 16;
+
+/// Maps an X screen coordinate onto 0..ABS_RANGE, clamping positions off the screen.
+fn scale_to_axis(coord: c_int, size: u32) -> i32 {
+    let scaled = i64::from(coord) * i64::from(ABS_RANGE) / i64::from(size.max(1));
+    scaled.clamp(0, i64::from(ABS_RANGE - 1)) as i32
+}
+
 static DEVICE: Lazy<Mutex<VirtualDevice>> = Lazy::new(|| {
-    let size = get_axes_range();
+    let abs = AbsInfo::new(0, 0, ABS_RANGE - 1, 0, 0, 1);
     Mutex::new(
         VirtualDevice::builder()
             .unwrap()
@@ -43,15 +53,9 @@ static DEVICE: Lazy<Mutex<VirtualDevice>> = Lazy::new(|| {
                 RelativeAxisCode::REL_WHEEL,
             ]))
             .unwrap()
-            .with_absolute_axis(&UinputAbsSetup::new(
-                AbsoluteAxisCode::ABS_X,
-                AbsInfo::new(0, 0, size.width, 0, 0, 1),
-            ))
+            .with_absolute_axis(&UinputAbsSetup::new(AbsoluteAxisCode::ABS_X, abs))
             .unwrap()
-            .with_absolute_axis(&UinputAbsSetup::new(
-                AbsoluteAxisCode::ABS_Y,
-                AbsInfo::new(0, 0, size.height, 0, 0, 1),
-            ))
+            .with_absolute_axis(&UinputAbsSetup::new(AbsoluteAxisCode::ABS_Y, abs))
             .unwrap()
             .build()
             .unwrap(),
@@ -182,17 +186,46 @@ pub extern "C" fn XTestFakeRelativeMotionEvent(
 
 #[no_mangle]
 pub extern "C" fn XTestFakeMotionEvent(
-    _: *mut Display,
-    _: c_int,
+    display: *mut Display,
+    screen: c_int,
     x: c_int,
     y: c_int,
     _: c_ulong,
 ) -> c_int {
+    let Some((width, height)) = x11::screen_size(display, screen) else {
+        eprintln!("extest: ignoring absolute motion, the X screen size is unknown");
+        return 0;
+    };
     let mut dev = DEVICE.lock().unwrap();
     let events = [
-        InputEvent::new_now(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_X.0, x),
-        InputEvent::new_now(EventType::ABSOLUTE.0, AbsoluteAxisCode::ABS_Y.0, y),
+        InputEvent::new_now(
+            EventType::ABSOLUTE.0,
+            AbsoluteAxisCode::ABS_X.0,
+            scale_to_axis(x, width),
+        ),
+        InputEvent::new_now(
+            EventType::ABSOLUTE.0,
+            AbsoluteAxisCode::ABS_Y.0,
+            scale_to_axis(y, height),
+        ),
     ];
     dev.emit(&events).unwrap();
     1
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn absolute_motion_is_relative_to_the_x_screen() {
+        // A 2560x1440 X screen on a 1.25 scaled output: the center must map to the
+        // center of the axis, not to 1280/2048 of the logical Wayland size.
+        assert_eq!(scale_to_axis(1280, 2560), ABS_RANGE / 2);
+        assert_eq!(scale_to_axis(720, 1440), ABS_RANGE / 2);
+        assert_eq!(scale_to_axis(0, 2560), 0);
+        assert_eq!(scale_to_axis(2559, 2560), ABS_RANGE - 26);
+        assert_eq!(scale_to_axis(-5, 2560), 0);
+        assert_eq!(scale_to_axis(9000, 2560), ABS_RANGE - 1);
+    }
 }
