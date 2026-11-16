@@ -6,15 +6,23 @@ It's been primarily developed for allowing the desktop functionality on the Stea
 ## Usage
 
 Be sure you have [Rust](https://www.rust-lang.org/learn/get-started) installed.
-You will also need to install a 32 bit Rust toolchain.
 
 ```sh
-rustup target add i686-unknown-linux-gnu
 cargo build --release
 ```
 
-This will create a library named `libextest.so` in `target/i686-unknown-linux-gnu/release`.
-Note that this library is 32 bit by default because Steam is a 32 bit application.
+This will create a library named `libextest.so` in `target/release`.
+The Steam client is 64 bit, so this builds a 64 bit library by default.
+Steam still starts a few 32 bit helper processes, which log `wrong ELF class: ELFCLASS64` when they skip the library. Those messages are harmless.
+
+If you still run an older 32 bit Steam client, build a 32 bit library instead:
+
+```sh
+rustup target add i686-unknown-linux-gnu
+cargo build --release --target i686-unknown-linux-gnu
+```
+
+That library is created in `target/i686-unknown-linux-gnu/release`.
 
 You will also need to add your user to the `input` group if not added already, so that your user can be allowed to actually create fake devices:
 
